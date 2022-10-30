@@ -1,0 +1,64 @@
+version: '3'
+
+services:
+  shopDB:
+    image: mysql
+    environment:
+      - MYSQL_ROOT_PASSWORD=root
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 10s
+      retries: 10
+    volumes:
+      - shopdb:/var/lib/mysql
+  shopDBMigration:
+    image: shopdbmigration
+    environment:
+      - DATABASE_URL=shopDB
+      - REDIS_URL=redis
+    depends_on:
+      shopDB:
+        condition: service_healthy
+  redis:
+    image: redis
+    ports:
+      - 6379:6379
+  admin:
+    image: admin
+    environment:
+      - DATABASE_URL=shopDB
+      - REDIS_URL=redis
+    depends_on:
+      - shopDBMigration
+    ports:
+      - 5003:5003
+  warehouse:
+    image: warehouse
+    environment:
+      - DATABASE_URL=shopDB
+      - REDIS_URL=redis
+    ports:
+      - 5001:5001
+  daemon:
+    image: daemon
+    environment:
+      - DATABASE_URL=shopDB
+      - REDIS_URL=redis
+    ports:
+      - 5004:5004
+  customer:
+    image: customer
+    environment:
+      - DATABASE_URL=shopDB
+      - REDIS_URL=redis
+    ports:
+      - 5000:5000
+
+
+
+volumes:
+  shopdb:
+
+networks:
+  redisNet:
+  databaseNet:
